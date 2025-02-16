@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -33,9 +34,15 @@ func CORS() gin.HandlerFunc {
 	}
 }
 
-func router(pg *sql.DB, mongo *mongo.Client) {
+
+func router(pg *sql.DB, mongo *mongo.Client, redis *redis.Client) {
 	r := gin.Default()
 	r.Use(CORS())
+
+	// cookieSecret := os.Getenv("COOKIE_SECRET")
+	// store := cookie.NewStore([]byte(cookieSecret))
+
+	// r.Use(sessions.Sessions("cookiesesh",store))
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
