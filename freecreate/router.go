@@ -2,9 +2,10 @@ package main
 
 import (
 	"database/sql"
-	"net/http"
+	"freecreate/config"
 	"os"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -20,7 +21,7 @@ func CORS() gin.HandlerFunc {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
-			c.Header("Access-Control-Expose-Headers", "Content-Length")
+			c.Header("Access-Control-Expose-Headers", "Content-Length, Content-Type")
 			c.Header("Access-Control-Allow-Credentials", "true")
 		}
 
@@ -34,20 +35,35 @@ func CORS() gin.HandlerFunc {
 	}
 }
 
-
 func router(pg *sql.DB, mongo *mongo.Client, redis *redis.Client) {
 	r := gin.Default()
 	r.Use(CORS())
+	r.Use(sessions.Sessions("mysession", config.SessionConfig()))
 
-	// cookieSecret := os.Getenv("COOKIE_SECRET")
-	// store := cookie.NewStore([]byte(cookieSecret))
+	r.GET("/me", func(c *gin.Context) {
+		session := sessions.Default(c)
+		user := session.Get("user")
+		if user == nil || user == false {
+			c.JSON(401, gin.H{"user": false})
+		} else if user == true{
+			c.JSON(200, gin.H{"user": true})
+		}
+	})
 
-	// r.Use(sessions.Sessions("cookiesesh",store))
+	r.POST("/login", func(c *gin.Context) {
+		session := sessions.Default(c)
+		session.Set("user", true)
+		session.Save()
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
+		c.JSON(200, gin.H{"user": true})
+	})
+
+	r.DELETE("/logout", func(c *gin.Context){
+		session := sessions.Default(c)
+		session.Delete("user")
+		session.Save()
+		
+		c.JSON(201, gin.H{"user": false})
 	})
 
 	r.Run()
